@@ -1,4 +1,4 @@
-src-git packages https://github.com/lazyoop/immwrtal2102-packages.git;openwrt-21.02
-src-git luci https://github.com/lazyoop/immwrtal2102-luci.git;openwrt-21.02
+src-git packages https://github.com/lazyoop/immwrt-packages.git;hanwckf-immwrt-mt798x-21.02
+src-git luci https://github.com/lazyoop/immwrt-luci.git;hanwckf-immwrt-mt798x-21.02
 src-git routing https://github.com/openwrt/routing.git;openwrt-21.02
 src-git telephony https://github.com/openwrt/telephony.git;openwrt-21.02
