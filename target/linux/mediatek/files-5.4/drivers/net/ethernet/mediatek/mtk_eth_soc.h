@@ -473,13 +473,13 @@
 #define MTK_STAT_OFFSET		0x40
 
 /* QDMA TX NUM */
-#define MTK_QDMA_TX_NUM		16
+#define MTK_QDMA_TX_NUM		64
 #define MTK_QDMA_TX_MASK	((MTK_QDMA_TX_NUM) - 1)
 #define QID_LOW_BITS(x)         ((x) & 0xf)
 #define QID_HIGH_BITS(x)        ((((x) >> 4) & 0x3) << 20)
 #define QID_BITS_V2(x)		(((x) & 0x3f) << 16)
 
-#define MTK_QDMA_GMAC2_QID	8
+#define MTK_QDMA_GMAC2_QID	32
 
 /* QDMA V2 descriptor txd6 */
 #define TX_DMA_INS_VLAN_V2         BIT(16)
@@ -767,6 +767,25 @@
 
 #define MT7628_SDM_MAC_ADRL	(MT7628_SDM_OFFSET + 0x0c)
 #define MT7628_SDM_MAC_ADRH	(MT7628_SDM_OFFSET + 0x10)
+
+/*MDIO control*/
+#define MII_MMD_ACC_CTL_REG             0x0d
+#define MII_MMD_ADDR_DATA_REG           0x0e
+#define MMD_OP_MODE_DATA BIT(14)
+struct mtk_eth;
+/* mmd */
+int mtk_mmd_read(struct mtk_eth *eth, int addr, int devad, u16 reg);
+void mtk_mmd_write(struct mtk_eth *eth, int addr, int devad, u16 reg,
+               u16 val);
+
+
+struct mtk_extphy_id
+{
+	u32 phy_id;
+	u32 phy_id_mask;
+	u32 is_c45;
+	int (*init)(struct mtk_eth *, int addr);
+};
 
 struct mtk_rx_dma {
 	unsigned int rxd1;
@@ -1318,5 +1337,6 @@ int mtk_gmac_gephy_path_setup(struct mtk_eth *eth, int mac_id);
 int mtk_gmac_rgmii_path_setup(struct mtk_eth *eth, int mac_id);
 void mtk_gdm_config(struct mtk_eth *eth, u32 id, u32 config);
 void ethsys_reset(struct mtk_eth *eth, u32 reset_bits);
-
+int mtk_soc_extphy_init(struct mtk_eth *eth, int addr);
+int mtk_mdio_busy_wait(struct mtk_eth *eth);
 #endif /* MTK_ETH_H */

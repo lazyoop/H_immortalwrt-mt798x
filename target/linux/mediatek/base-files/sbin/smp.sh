@@ -710,6 +710,11 @@ setup_model()
 
 	case $board in
 	xiaomi,redmi-router-ax6000* |\
+	bananapi,bpi-r3mini* |\
+	netcore,n60 |\
+	glinet,gl-mt6000|\
+	jdcloud,re-cp-03 |\
+	tplink,tl-xdr608* |\
 	*7986*)
 		MT7986_whnat $num_of_wifi
 		;;
@@ -720,8 +725,10 @@ setup_model()
 	*zr-3020* |\
 	*360,t7* |\
 	abt,asr3000* |\
+	*clt,r30b1* |\
 	cmcc,a10* |\
 	xiaomi,mi-router-wr30u* |\
+	xiaomi,mi-router-ax3000t* |\
 	*rax3000m* |\
 	h3c,nx30pro |\
 	konka,komi-a31 |\
