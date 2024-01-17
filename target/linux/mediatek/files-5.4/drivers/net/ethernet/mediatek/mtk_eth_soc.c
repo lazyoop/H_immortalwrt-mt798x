@@ -2472,7 +2472,7 @@ static void mtk_dma_free(struct mtk_eth *eth)
 		eth->phy_scratch_ring = 0;
 	}
 	mtk_tx_clean(eth);
-	mtk_rx_clean(eth, &eth->rx_ring[0],1);
+	mtk_rx_clean(eth, &eth->rx_ring[0],eth->soc->has_sram);
 	mtk_rx_clean(eth, &eth->rx_ring_qdma,0);
 
 	if (eth->hwlro) {
@@ -2586,7 +2586,7 @@ static int mtk_start_dma(struct mtk_eth *eth)
 				MTK_NDP_CO_PRO | MTK_MUTLI_CNT |
 				MTK_RESV_BUF | MTK_WCOMP_EN |
 				MTK_DMAD_WR_WDONE | MTK_CHK_DDONE_EN |
-				MTK_RX_2B_OFFSET | MTK_PKT_RX_WDONE, MTK_QDMA_GLO_CFG);
+				MTK_RX_2B_OFFSET, MTK_QDMA_GLO_CFG);
 		}
 		else
 			mtk_w32(eth,
@@ -2941,8 +2941,11 @@ static int mtk_hw_init(struct mtk_eth *eth, u32 type)
 		/* PSE Free Queue Flow Control  */
 		mtk_w32(eth, 0x01fa01f4, PSE_FQFC_CFG2);
 
-		/* PSE should not drop port8 and port9 packets */
-		mtk_w32(eth, 0x00000300, PSE_DROP_CFG);
+		/* PSE should not drop port8 and port9 packets from WDMA Tx */
+		mtk_w32(eth, 0x00000300, PSE_NO_DROP_CFG);
+
+		/* PSE should drop p8 and p9 packets when WDMA Rx ring full*/
+		mtk_w32(eth, 0x00000300, PSE_PPE0_DROP);
 
 		/* PSE config input queue threshold */
 		mtk_w32(eth, 0x001a000e, PSE_IQ_REV(1));
@@ -3078,10 +3081,15 @@ static void mtk_pending_work(struct work_struct *work)
 	mtk_prepare_reset_fe(eth);
 
 	/* Trigger Wifi SER reset */
-	call_netdevice_notifiers(MTK_FE_START_RESET, eth->netdev[0]);
-	rtnl_unlock();
-	wait_for_completion_timeout(&wait_ser_done, 5000);
-	rtnl_lock();
+	for (i = 0; i < MTK_MAC_COUNT; i++) {
+		if (!eth->netdev[i])
+			continue;
+		call_netdevice_notifiers(MTK_FE_START_RESET, eth->netdev[i]);
+		rtnl_unlock();
+		wait_for_completion_timeout(&wait_ser_done, 5000);
+		rtnl_lock();
+		break;
+	}
 
 	while (test_and_set_bit_lock(MTK_RESETTING, &eth->state))
 		cpu_relax();
@@ -3108,7 +3116,7 @@ static void mtk_pending_work(struct work_struct *work)
 
 	/* restart DMA and enable IRQs */
 	for (i = 0; i < MTK_MAC_COUNT; i++) {
-		if (!test_bit(i, &restart))
+		if (!test_bit(i, &restart) || !eth->netdev[i])
 			continue;
 		err = mtk_open(eth->netdev[i]);
 		if (err) {
@@ -3132,6 +3140,8 @@ static void mtk_pending_work(struct work_struct *work)
 
 	/* Power up sgmii */
 	for (i = 0; i < MTK_MAC_COUNT; i++) {
+		if (!eth->netdev[i])
+			continue;
 		mac = netdev_priv(eth->netdev[i]);
 		phy_node = of_parse_phandle(mac->of_node, "phy-handle", 0);
 		if (!phy_node && eth->sgmii->regmap[i]) {
@@ -3140,11 +3150,15 @@ static void mtk_pending_work(struct work_struct *work)
 		}
 	}
 
-	call_netdevice_notifiers(MTK_FE_RESET_NAT_DONE, eth->netdev[0]);
-	pr_info("[%s] HNAT reset done !\n", __func__);
-
-	call_netdevice_notifiers(MTK_FE_RESET_DONE, eth->netdev[0]);
-	pr_info("[%s] WiFi SER reset done !\n", __func__);
+	for (i = 0; i < MTK_MAC_COUNT; i++) {
+		if (!eth->netdev[i])
+			continue;
+		call_netdevice_notifiers(MTK_FE_RESET_NAT_DONE, eth->netdev[i]);
+		pr_info("[%s] HNAT reset done !\n", __func__);
+		call_netdevice_notifiers(MTK_FE_RESET_DONE, eth->netdev[i]);
+		pr_info("[%s] WiFi SER reset done !\n", __func__);
+		break;
+	}
 
 	atomic_dec(&reset_lock);
 	if (atomic_read(&force) > 0)

@@ -124,7 +124,8 @@
 /* PSE Free Queue Flow Control  */
 #define PSE_FQFC_CFG1		0x100
 #define PSE_FQFC_CFG2		0x104
-#define PSE_DROP_CFG		0x108
+#define PSE_NO_DROP_CFG		0x108
+#define PSE_PPE0_DROP		0x110
 
 /* PSE Input Queue Reservation Register*/
 #define PSE_IQ_REV(x)		(0x140 + ((x - 1) * 0x4))
@@ -586,7 +587,7 @@
 /* Mac control registers */
 #define MTK_MAC_MCR(x)		(0x10100 + (x * 0x100))
 #define MAC_MCR_MAX_RX_1536	BIT(24)
-#define MAC_MCR_IPG_CFG		(BIT(18) | BIT(16))
+#define MAC_MCR_IPG_CFG		(BIT(18) | BIT(16) | BIT(12))
 #define MAC_MCR_FORCE_MODE	BIT(15)
 #define MAC_MCR_TX_EN		BIT(14)
 #define MAC_MCR_RX_EN		BIT(13)
